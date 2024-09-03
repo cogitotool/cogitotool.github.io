@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COGITO Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #6b579c;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        main {
+            max-width: 600px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h1, h2 {
+            margin-top: 0;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        section {
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        section.active {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        input[type="range"], textarea {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            align-self: flex-end;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #45a049;
+        }
+
+        button[type="button"] {
+            background-color: #6b579c;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button[type="button"]:hover {
+            background-color: #6b659c;
+        }
+
+        #pointsUsed {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        #resultMessage {
+            font-size: 2em;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #backToQuestions {
+            position: relative;
+            bottom: -20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>COGITO Test</h1>
+    </header>
+    <main>
+        <form id="scoreForm">
+            <section class="active" id="introSection">
+                <p>Do you want to know if your potential spouse meets your expectations?</p>
+                <p>COGITO is an advanced AI-powered tool designed to enhance
+                self-awareness, helping you explore the potential of a
+                committed relationship with your spouse.</p>
+                <label for="desiredScore">Please set your desired spouse score (how highly would you rate your ideal future spouse?)</label>
+                <input type="range" id="desiredScore" name="desiredScore" min="50" max="100" value="75" required>
+                <p>Desired Score: <span id="desiredScoreValue">75</span></p>
+                <button type="button" id="nextToQuestions">Next</button>
+            </section>
+
+            <section id="questionsSection">
+                <p>Now, please rate the importance of each of the following
+                questions based on your perspective and then a score for your
+                potential spouse for each question in your perspective.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Importance</th>
+                            <th>Spouse score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="questionTable"></tbody>
+                </table>
+                <p id="weightError" style="color: red; display: none;">Total importance sum must be equal to 100.</p>
+                <p id="pointsUsed">Importance points used: <span id="totalPoints">0</span>/100</p>
+                <button type="button" id="backToIntro">Back</button>
+                <button type="submit">Calculate</button>
+            </section>
+
+            <section id="resultSection">
+                <p id="resultMessage"></p>
+                <button type="button" id="backToQuestions">Back</button>
+            </section>
+        </form>
+    </main>
+
+    <script>
+    let questions = [
+        "Do I feel love for her/him?",
+        "Do I trust her/him to understand and care about me ('see me')?",
+        "Do I trust the stability of her/his feelings towards me over time?",
+        "Do I trust her/his emotional stability in general?",
+        "Do I trust her/his ability to earn a decent living?",
+        "Do I trust her/him with involvement in raising the children?",
+        "Is it enjoyable for me to be in her/his company?",
+        "Do I trust her/his independent judgment in making decisions?",
+        "Does she/he have a positive outlook on life?",
+        "How important is the level of trust between us? - Feel free to enter your own question, or stick with the default one provided"
+    ];
+
+    function generateQuestionTable() {
+        const questionTable = document.getElementById('questionTable');
+        let totalPoints = 0;
+        questions.forEach((question, i) => {
+            const row = document.createElement('tr');
+            if (i === questions.length - 1) {
+                row.innerHTML = `
+                    <td><textarea name="customQuestion" id="customQuestion" rows="2">${question}</textarea></td>
+                    <td><input type="range" name="weight${i + 1}" min="5" max="20" value="10" required oninput="updatePoints()"></td>
+                    <td><input type="range" name="fulfillment${i + 1}" min="50" max="100" value="75" required></td>
+                `;
+            } else {
+                row.innerHTML = `
+                    <td>${i + 1}. ${question}</td>
+                    <td><input type="range" name="weight${i + 1}" min="5" max="20" value="10" required oninput="updatePoints()"></td>
+                    <td><input type="range" name="fulfillment${i + 1}" min="50" max="100" value="75" required></td>
+                `;
+            }
+            questionTable.appendChild(row);
+            totalPoints += 10; // Default value is 10 for each weight
+        });
+        document.getElementById('totalPoints').innerText = totalPoints;
+    }
+
+    function updatePoints() {
+        const formData = new FormData(document.getElementById('scoreForm'));
+        let totalPoints = 0;
+        for (let i = 1; i <= questions.length; i++) {
+            const weight = parseFloat(formData.get(`weight${i}`)) || 0;
+            totalPoints += weight;
+        }
+        document.getElementById('totalPoints').innerText = totalPoints;
+    }
+
+    function validateForm() {
+        const formData = new FormData(document.getElementById('scoreForm'));
+        let weightSum = 0;
+        for (let i = 1; i <= questions.length; i++) {
+            const weight = parseFloat(formData.get(`weight${i}`)) || 0;
+            weightSum += weight;
+        }
+        if (weightSum !== 100) {
+            document.getElementById('weightError').style.display = 'block';
+        } else {
+            document.getElementById('weightError').style.display = 'none';
+        }
+    }
+
+    function calculateScore() {
+        const formData = new FormData(document.getElementById('scoreForm'));
+        let totalScore = 0;
+
+        for (let i = 1; i <= questions.length; i++) {
+            const weight = parseFloat(formData.get(`weight${i}`));
+            const fulfillment = parseFloat(formData.get(`fulfillment${i}`));
+
+            totalScore += weight * fulfillment;
+        }
+
+        const score = totalScore / 100;
+        const desiredScore = parseFloat(formData.get('desiredScore'));
+
+        const resultMessage = score >= desiredScore ? "Good match" : "Re-evaulation advised";
+        document.getElementById('resultMessage').innerText = `Result: ${resultMessage}`;
+        document.getElementById('resultSection').classList.add('active');
+        document.getElementById('questionsSection').classList.remove('active');
+    }
+
+    document.getElementById('desiredScore').addEventListener('input', function() {
+        document.getElementById('desiredScoreValue').innerText = this.value;
+    });
+
+    document.getElementById('nextToQuestions').addEventListener('click', function() {
+        document.getElementById('introSection').classList.remove('active');
+        document.getElementById('questionsSection').classList.add('active');
+    });
+
+    document.getElementById('backToIntro').addEventListener('click', function() {
+        document.getElementById('questionsSection').classList.remove('active');
+        document.getElementById('introSection').classList.add('active');
+    });
+
+    document.getElementById('backToQuestions').addEventListener('click', function() {
+        document.getElementById('resultSection').classList.remove('active');
+        document.getElementById('questionsSection').classList.add('active');
+    });
+
+    generateQuestionTable();
+
+    document.getElementById('scoreForm').addEventListener('input', validateForm);
+
+    document.getElementById('scoreForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        validateForm();
+        if (document.getElementById('weightError').style.display === 'none') {
+            calculateScore();
+        }
+    });
+    </script>
+
+</body>
+</html>
